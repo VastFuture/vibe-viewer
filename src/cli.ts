@@ -20,11 +20,11 @@ function parseArgs(argv: string[]) {
 
 function printHelp() {
   const lines = [
-    "vibe-viewer - Markdown 本地浏览器（Mermaid.js）",
+    "vibeview - Markdown 本地浏览器（Mermaid.js）",
     "",
     "用法：",
-    "  npx vibe-viewer",
-    "  npx vibe-viewer --dir <path>",
+    "  npx vibeview",
+    "  npx vibeview --dir <path>",
     "",
     "参数：",
     "  --dir <path>     Root 目录；不传则进入交互输入",

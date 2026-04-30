@@ -1,6 +1,6 @@
 # npm-publish
 
-Publish vibe-viewer to npm registry.
+Publish vibeview to npm registry.
 
 ## Trigger
 
@@ -65,7 +65,7 @@ npm publish
 
 2. **Confirm**
    ```bash
-   npm view vibe-viewer version
+   npm view vibeview version
    ```
    Show the user the published version number.
 
@@ -73,6 +73,6 @@ npm publish
 
 If publish succeeds but something is wrong:
 ```bash
-npm unpublish vibe-viewer@<version> --force
+npm unpublish vibeview@<version> --force
 ```
 Note: npm only allows unpublish within 72 hours for security reasons.

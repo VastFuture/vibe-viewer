@@ -147,7 +147,7 @@ export function App() {
         <div className="sidebar__header">
           <div className="sidebar__top">
             <div className="brand">
-              <div className="brand__title">vibe-viewer</div>
+              <div className="brand__title">vibeview</div>
               <div className="brand__subtitle">
                 {rootHint} · {wsHint}
               </div>

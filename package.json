@@ -1,11 +1,11 @@
 {
-  "name": "vibe-viewer",
-  "version": "0.1.2",
-  "description": "Local Markdown browser (npx) with Mermaid.js rendering and live reload",
+  "name": "vibeview",
+  "version": "0.1.0",
+  "description": "Local Markdown browser with Mermaid.js rendering and live reload",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "vibe-viewer": "dist/cli.js"
+    "vibeview": "dist/cli.js"
   },
   "engines": {
     "node": ">=18.18"

@@ -6,6 +6,7 @@ import tasklists from "markdown-it-task-lists";
 import SlackSlug from "github-slugger";
 import type { Highlighter } from "shiki";
 import type { Settings } from "./state/store.js";
+import { shikiThemeForUi } from "./highlight.js";
 
 export function renderMarkdown(
   content: string,
@@ -50,7 +51,7 @@ export function renderMarkdown(
     // Other languages: use shiki highlighter if available
     if (highlighter) {
       try {
-        return highlighter.codeToHtml(token.content, { lang, theme: "github-dark" });
+        return highlighter.codeToHtml(token.content, { lang, theme: shikiThemeForUi(settings.theme) });
       } catch {}
     }
 

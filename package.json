@@ -23,7 +23,8 @@
     "prepublishOnly": "npm run build",
     "test:render": "node scripts/test-render.mjs",
     "test:server": "node scripts/test-server.mjs",
-    "test": "npm run build && npm run test:render && npm run test:server"
+    "test": "npm run build && npm run test:render && npm run test:server",
+    "install:global": "npm run build && npm install -g ."
   },
   "dependencies": {
     "chokidar": "^4.0.3",

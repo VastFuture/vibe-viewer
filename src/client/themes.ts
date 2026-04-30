@@ -352,4 +352,4 @@ export const THEMES: ThemeDef[] = [
   },
 ];
 
-export const DEFAULT_THEME = "github-dark";
+export const DEFAULT_THEME = "github-light";

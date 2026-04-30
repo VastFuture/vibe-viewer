@@ -1,4 +1,5 @@
 import { createHighlighter, Highlighter } from "shiki";
+import { THEMES } from "./themes.js";
 
 let highlighterPromise: Promise<Highlighter> | null = null;
 
@@ -7,7 +8,7 @@ export async function getHighlighter() {
 
   highlighterPromise = (async () => {
     const hl = await createHighlighter({
-      themes: ["github-dark"],
+      themes: ["github-dark", "github-light"],
       langs: [
         "bash",
         "css",
@@ -25,4 +26,10 @@ export async function getHighlighter() {
   })();
 
   return highlighterPromise;
+}
+
+export function shikiThemeForUi(uiTheme: string): "github-dark" | "github-light" {
+  const def = THEMES.find((t) => t.name === uiTheme);
+  if (def?.type === "light") return "github-light";
+  return "github-dark";
 }

@@ -11,7 +11,7 @@
     </filter>
   </defs>
   <rect width="1200" height="680" fill="#ffffff"/>
-  <text x="600" y="36" fill="#111827" font-size="20" font-weight="600" text-anchor="middle">vibe-viewer Q2 2026 &#x8DEF;&#x7EBF;&#x56FE;</text>
+  <text x="600" y="36" fill="#111827" font-size="20" font-weight="600" text-anchor="middle">vibeview Q2 2026 &#x8DEF;&#x7EBF;&#x56FE;</text>
   <text x="600" y="56" fill="#6b7280" font-size="12" text-anchor="middle">6 Epics &#xB7; 5 Milestones &#xB7; 6 Weeks</text>
   <rect x="100" y="80" width="1000" height="4" rx="2" fill="#e5e7eb"/>
   <line x1="100" y1="76" x2="100" y2="88" stroke="#9ca3af" stroke-width="1"/>

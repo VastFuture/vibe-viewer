@@ -1,4 +1,4 @@
-# vibe-viewer 深度架构文档
+# vibeview 深度架构文档
 
 > 版本: 0.1.2 | 许可证: MIT | Node.js >= 18.18
 
@@ -6,7 +6,7 @@
 
 ## 1 项目全局摘要
 
-vibe-viewer 是一个零配置本地 Markdown 浏览器，通过 `npx vibe-viewer` 一键启动，在浏览器中提供侧边栏文件树 + 实时预览的编辑体验。核心价值链：
+vibeview 是一个零配置本地 Markdown 浏览器，通过 `npx vibeview` 一键启动，在浏览器中提供侧边栏文件树 + 实时预览的编辑体验。核心价值链：
 
 ```
 本地文件系统 → Express API + chokidar 监听 → WebSocket 推送 → React 浏览器渲染
@@ -510,7 +510,7 @@ stateDiagram-v2
 1. **渲染管线解耦**：markdown-it 负责解析和基础 HTML 生成，Shiki/Mermaid/KaTeX 作为后处理步骤独立运行，互不干扰
 2. **竞态安全**：`renderSeq` + `isLatest()` 闭包确保文件快速切换时不会渲染过期内容
 3. **EMFILE 自动降级**：大目录场景下监控系统 fd 限制，自动切换到显式监听模式，不中断服务
-4. **0 配置启动**：`npx vibe-viewer` 一条命令，无需任何配置文件
+4. **0 配置启动**：`npx vibeview` 一条命令，无需任何配置文件
 5. **CSS 变量主题**：30+ 变量覆盖所有 UI 元素，主题切换零闪烁
 
 ### 5.2 已知风险与改进方向
@@ -662,7 +662,7 @@ md.use(myPlugin, { /* options */ });
 ### 7.5 项目结构速查
 
 ```
-vibe-viewer/
+vibeview/
 ├── src/
 │   ├── cli.ts                      # CLI 入口
 │   ├── server/
@@ -706,4 +706,4 @@ vibe-viewer/
 
 ---
 
-> 本文档由 vibe-viewer 深度项目分析自动生成 | 基于 v0.1.2 源码
+> 本文档由 vibeview 深度项目分析自动生成 | 基于 v0.1.2 源码

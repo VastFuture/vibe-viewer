@@ -4,13 +4,12 @@ import type { Settings } from "../state/store.js";
 import { renderMarkdown } from "../markdown.js";
 import { sanitizeIfNeeded } from "../security.js";
 import { rewriteLocalAssets } from "../assets.js";
-import { renderMermaidBlocks } from "../mermaid.js";
+import { initMermaid, renderMermaidBlocks } from "../mermaid.js";
 import { getHighlighter } from "../highlight.js";
 import { THEMES } from "../themes.js";
 
 interface Config {
   rootAbs: string;
-  theme: string;
   rootName: string;
   extensions: string[];
 }
@@ -54,34 +53,57 @@ function attachMermaidClicks(container: HTMLElement, onOpen: (svgHtml: string) =
   }
 }
 
-// ---- Fullscreen Lightbox (inline component) ----
+// ---- Fullscreen Lightbox ----
 
-function FullscreenViewer({ svgHtml, onClose }: { svgHtml: string; onClose: () => void }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const transform = useRef({ x: 0, y: 0, scale: 1 });
-  const dragging = useRef(false);
-  const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+function svgToImgUrl(raw: string): string {
+  const fixed = raw.replace(/var\(--[a-z-]+\)/g, (match) => {
+    const map: Record<string, string> = {
+      "var(--mono)": "ui-monospace,SFMono-Regular,Menlo,monospace",
+      "var(--ui)": "system-ui,sans-serif",
+      "var(--content)": "Georgia,serif",
+    };
+    return map[match] ?? "sans-serif";
+  });
+  const blob = new Blob([fixed], { type: "image/svg+xml" });
+  return URL.createObjectURL(blob);
+}
 
-  const applyTransform = useCallback(() => {
-    const w = wrapRef.current;
-    if (!w) return;
-    const { x, y, scale } = transform.current;
-    w.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+const FS_ZOOM_STEPS = [20, 40, 60, 80, 100, 130, 160, 200, 260, 320, 400, 500];
+
+function FullscreenViewer({ svgHtml, onClose, isLight }: { svgHtml: string; onClose: () => void; isLight: boolean }) {
+  const [zoom, setZoom] = useState(100);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const imgUrl = useMemo(() => svgToImgUrl(svgHtml), [svgHtml]);
+  const dragRef = useRef({ active: false, sx: 0, sy: 0, px: 0, py: 0 });
+
+  useEffect(() => () => URL.revokeObjectURL(imgUrl), [imgUrl]);
+
+  const stepZoom = useCallback((dir: 1 | -1) => {
+    setZoom((z) => {
+      const idx = FS_ZOOM_STEPS.findIndex((s) => s >= z);
+      const next = idx === -1
+        ? (dir === 1 ? FS_ZOOM_STEPS.length - 1 : 0)
+        : Math.max(0, Math.min(FS_ZOOM_STEPS.length - 1, idx + dir));
+      return FS_ZOOM_STEPS[next];
+    });
   }, []);
 
-  const setScale = useCallback((s: number) => {
-    transform.current.scale = Math.max(0.25, Math.min(10, s));
-    applyTransform();
-  }, [applyTransform]);
+  const resetView = useCallback(() => {
+    setZoom(100);
+    setPan({ x: 0, y: 0 });
+  }, []);
 
-  const zoomIn = useCallback(() => setScale(transform.current.scale * 1.3), [setScale]);
-  const zoomOut = useCallback(() => setScale(transform.current.scale / 1.3), [setScale]);
-  const reset = useCallback(() => {
-    transform.current = { x: 0, y: 0, scale: 1 };
-    applyTransform();
-  }, [applyTransform]);
+  useEffect(() => {
+    const vp = document.getElementById("fs-viewport");
+    if (!vp) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      stepZoom(e.deltaY < 0 ? 1 : -1);
+    };
+    vp.addEventListener("wheel", onWheel, { passive: false });
+    return () => vp.removeEventListener("wheel", onWheel);
+  }, [stepZoom]);
 
-  // Keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -90,50 +112,53 @@ function FullscreenViewer({ svgHtml, onClose }: { svgHtml: string; onClose: () =
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { active: true, sx: e.clientX, sy: e.clientY, px: pan.x, py: pan.y };
+  }, [pan]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d.active) return;
+    setPan({ x: d.px + (e.clientX - d.sx), y: d.py + (e.clientY - d.sy) });
+  }, []);
+
+  const endDrag = useCallback(() => {
+    dragRef.current.active = false;
+  }, []);
+
+  const pct = zoom;
+
   return (
-    <div className="fs-overlay" onClick={onClose}>
-      {/* Toolbar */}
+    <div className={`fs-overlay${isLight ? " fs-light" : ""}`} onClick={onClose}>
       <div className="fs-toolbar" onClick={(e) => e.stopPropagation()}>
-        <button className="fs-btn" onClick={zoomIn} title="放大">+</button>
-        <button className="fs-btn" onClick={zoomOut} title="缩小">−</button>
-        <button className="fs-btn" onClick={reset} title="还原">1:1</button>
+        <span className="fs-zoom-label">{pct}%</span>
+        <button className="fs-btn" onClick={() => stepZoom(1)} title="放大">+</button>
+        <button className="fs-btn" onClick={() => stepZoom(-1)} title="缩小">−</button>
+        <button className="fs-btn" onClick={resetView} title="还原">1:1</button>
         <button className="fs-btn fs-close" onClick={onClose} title="关闭 (Esc)">✕</button>
       </div>
 
-      {/* Zoomable wrapper */}
       <div
+        id="fs-viewport"
         className="fs-viewport"
-        onWheel={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          setScale(transform.current.scale * (e.deltaY < 0 ? 1.1 : 0.9));
-        }}
-        onMouseDown={(e) => {
-          if (e.button !== 0) return;
-          dragging.current = true;
-          dragStart.current = {
-            x: e.clientX,
-            y: e.clientY,
-            tx: transform.current.x,
-            ty: transform.current.y,
-          };
-        }}
-        onMouseMove={(e) => {
-          if (!dragging.current) return;
-          transform.current.x = dragStart.current.tx + (e.clientX - dragStart.current.x);
-          transform.current.y = dragStart.current.ty + (e.clientY - dragStart.current.y);
-          applyTransform();
-        }}
-        onMouseUp={() => { dragging.current = false; }}
-        onMouseLeave={() => { dragging.current = false; }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
         onClick={(e) => e.stopPropagation()}
-        style={{ cursor: dragging.current ? "grabbing" : "grab" }}
       >
-        <div
-          ref={wrapRef}
-          className="fs-wrap"
-          style={{ transform: "translate(0px, 0px) scale(1)", transition: "none" }}
-          dangerouslySetInnerHTML={{ __html: svgHtml }}
+        <img
+          className="fs-img"
+          src={imgUrl}
+          alt="Mermaid 全屏预览"
+          draggable={false}
+          style={{
+            width: `${pct}%`,
+            transform: `translate(${pan.x}px, ${pan.y}px)`,
+          }}
         />
       </div>
     </div>
@@ -170,7 +195,7 @@ export function Preview({
   const content = file?.content ?? "";
   const currentAbsPath = file?.absPath ?? "";
   const rootAbs = config?.rootAbs ?? "";
-  const mermaidTheme = THEMES.find((t) => t.name === settings.theme)?.mermaid ?? "tokyo-night";
+  const mermaidTheme = THEMES.find((t) => t.name === settings.theme)?.mermaid ?? "dark";
 
   const mdHtml = useMemo(() => {
     if (!file) return "";
@@ -195,7 +220,9 @@ export function Preview({
         securityLevel: settings.securityLevel,
         openMarkdownFile: onOpenFile,
       });
-      void renderMermaidBlocks(el, { theme: mermaidTheme, isLatest }).then(() => {
+
+      initMermaid(mermaidTheme);
+      void renderMermaidBlocks(el, { isLatest }).then(() => {
         if (isLatest()) attachMermaidClicks(el, setFsSvg);
       });
     }
@@ -211,7 +238,7 @@ export function Preview({
 
   return (
     <>
-      {fsSvg ? <FullscreenViewer svgHtml={fsSvg} onClose={() => setFsSvg(null)} /> : null}
+      {fsSvg ? <FullscreenViewer svgHtml={fsSvg} onClose={() => setFsSvg(null)} isLight={settings.theme === "github-light"} /> : null}
 
       <div className="preview__body">
         <div className="md">

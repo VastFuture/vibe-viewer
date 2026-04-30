@@ -13,8 +13,6 @@ function parseArgs(argv: string[]) {
     if (a === "--no-open") { out.noOpen = true; continue; }
     if (a === "--dir") { out.dir = argv[i + 1]; i++; continue; }
     if (a.startsWith("--dir=")) { out.dir = a.slice("--dir=".length); continue; }
-    if (a === "--theme") { out.theme = argv[i + 1]; i++; continue; }
-    if (a.startsWith("--theme=")) { out.theme = a.slice("--theme=".length); continue; }
     if (!a.startsWith("-") && !out.dir) { out.dir = a; continue; }
   }
   return out;
@@ -22,7 +20,7 @@ function parseArgs(argv: string[]) {
 
 function printHelp() {
   const lines = [
-    "vibe-viewer - Markdown 本地浏览器（beautiful-mermaid）",
+    "vibe-viewer - Markdown 本地浏览器（Mermaid.js）",
     "",
     "用法：",
     "  npx vibe-viewer",
@@ -30,7 +28,6 @@ function printHelp() {
     "",
     "参数：",
     "  --dir <path>     Root 目录；不传则进入交互输入",
-    "  --theme <name>   beautiful-mermaid 主题名；默认 tokyo-night",
     "  --no-open        不自动打开浏览器",
     "  -h, --help       显示帮助",
   ];
@@ -80,10 +77,9 @@ async function main() {
 
   const dirInput = args.dir ?? (await askDirInteractively());
   const rootAbs = await ensureDirAbs(String(dirInput));
-  const theme = (String(args.theme ?? "tokyo-night")).trim() || "tokyo-night";
   const shouldOpen = !args.noOpen;
 
-  const { port, close } = await startServer({ rootAbs, theme });
+  const { port, close } = await startServer({ rootAbs });
   const url = `http://127.0.0.1:${port}/`;
   console.log(`Root: ${rootAbs}`);
   console.log(`URL:  ${url}`);

@@ -2,7 +2,7 @@ export interface ThemeDef {
   name: string;
   label: string;
   type: "dark" | "light";
-  mermaid: string;
+  mermaid: "dark" | "default" | "neutral" | "forest" | "base";
   vars: Record<string, string>;
 }
 
@@ -12,7 +12,7 @@ export const THEMES: ThemeDef[] = [
     name: "github-dark",
     label: "GitHub Dark",
     type: "dark",
-    mermaid: "github-dark",
+    mermaid: "dark",
     vars: {
       "--bg-root":        "#0d1117",
       "--bg-panel":       "rgba(22,27,34,0.90)",
@@ -55,7 +55,7 @@ export const THEMES: ThemeDef[] = [
     name: "github-light",
     label: "GitHub Light",
     type: "light",
-    mermaid: "github-light",
+    mermaid: "default",
     vars: {
       "--bg-root":        "#ffffff",
       "--bg-panel":       "rgba(255,255,255,0.92)",
@@ -98,7 +98,7 @@ export const THEMES: ThemeDef[] = [
     name: "nord",
     label: "Nord",
     type: "dark",
-    mermaid: "nord",
+    mermaid: "dark",
     vars: {
       "--bg-root":        "#2e3440",
       "--bg-panel":       "rgba(46,52,64,0.88)",
@@ -141,7 +141,7 @@ export const THEMES: ThemeDef[] = [
     name: "dracula",
     label: "Dracula",
     type: "dark",
-    mermaid: "dracula",
+    mermaid: "dark",
     vars: {
       "--bg-root":        "#1e1c29",
       "--bg-panel":       "rgba(40,42,54,0.90)",
@@ -184,7 +184,7 @@ export const THEMES: ThemeDef[] = [
     name: "catppuccin",
     label: "Catppuccin Mocha",
     type: "dark",
-    mermaid: "catppuccin-mocha",
+    mermaid: "dark",
     vars: {
       "--bg-root":        "#1e1e2e",
       "--bg-panel":       "rgba(30,30,46,0.88)",
@@ -227,7 +227,7 @@ export const THEMES: ThemeDef[] = [
     name: "solarized-dark",
     label: "Solarized Dark",
     type: "dark",
-    mermaid: "solarized-dark",
+    mermaid: "dark",
     vars: {
       "--bg-root":        "#002b36",
       "--bg-panel":       "rgba(7,54,66,0.90)",
@@ -270,7 +270,7 @@ export const THEMES: ThemeDef[] = [
     name: "one-dark",
     label: "One Dark",
     type: "dark",
-    mermaid: "one-dark",
+    mermaid: "dark",
     vars: {
       "--bg-root":        "#282c34",
       "--bg-panel":       "rgba(33,37,43,0.90)",
@@ -313,7 +313,7 @@ export const THEMES: ThemeDef[] = [
     name: "monokai",
     label: "Monokai",
     type: "dark",
-    mermaid: "one-dark",
+    mermaid: "dark",
     vars: {
       "--bg-root":        "#272822",
       "--bg-panel":       "rgba(39,40,34,0.90)",

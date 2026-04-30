@@ -42,15 +42,19 @@ export function renderMarkdown(
     const info = (token.info ?? "").trim();
     const lang = info.split(/\s+/g)[0]?.toLowerCase() ?? "";
 
-    if (lang === "mermaid" || !highlighter) {
-      return defaultFence(tokens, idx, options, env, self);
+    // Mermaid: wrap in <div class="mermaid"> for mermaid.js to render
+    if (lang === "mermaid") {
+      return `<div class="mermaid">\n${token.content}\n</div>\n`;
     }
 
-    try {
-      return highlighter.codeToHtml(token.content, { lang, theme: "github-dark" });
-    } catch {
-      return defaultFence(tokens, idx, options, env, self);
+    // Other languages: use shiki highlighter if available
+    if (highlighter) {
+      try {
+        return highlighter.codeToHtml(token.content, { lang, theme: "github-dark" });
+      } catch {}
     }
+
+    return defaultFence(tokens, idx, options, env, self);
   };
 
   return md.render(content);

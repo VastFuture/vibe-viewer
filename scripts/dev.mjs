@@ -18,7 +18,7 @@ const nodeCommon = {
   format: "esm",
   platform: "node",
   target: "node18",
-  external: ["beautiful-mermaid", "chokidar", "express", "open", "prompts", "ws"],
+  external: ["chokidar", "express", "open", "prompts", "ws"],
   logLevel: "info",
 };
 

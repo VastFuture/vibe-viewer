@@ -9,7 +9,6 @@ import { THEMES } from "../themes.js";
 
 interface Config {
   rootAbs: string;
-  theme: string;
   rootName: string;
   extensions: string[];
 }
@@ -38,6 +37,7 @@ export function App() {
   const [pendingHash, setPendingHash] = useState<string | null>(null);
   const [wsStatus, setWsStatus] = useState<"connecting" | "open" | "closed">("connecting");
   const [error, setError] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const currentAbs = current?.absPath ?? null;
   const currentMtime = current?.mtimeMs ?? null;
@@ -133,14 +133,32 @@ export function App() {
         : "WS: 已断开（自动重连）";
 
   return (
-    <div className="app">
+<div className={`app${sidebarOpen ? "" : " app--collapsed"}`}>
+      {!sidebarOpen && (
+        <button
+          className="btn btn--icon sidebar__expand"
+          onClick={() => setSidebarOpen(true)}
+          title="展开侧边栏"
+        >
+          ▶
+        </button>
+      )}
       <div className="panel sidebar">
         <div className="sidebar__header">
-          <div className="brand">
-            <div className="brand__title">vibe-viewer</div>
-            <div className="brand__subtitle">
-              {rootHint} · {wsHint}
+          <div className="sidebar__top">
+            <div className="brand">
+              <div className="brand__title">vibe-viewer</div>
+              <div className="brand__subtitle">
+                {rootHint} · {wsHint}
+              </div>
             </div>
+            <button
+              className="btn btn--icon sidebar__toggle"
+              onClick={() => setSidebarOpen(false)}
+              title="收起侧边栏"
+            >
+              ◀
+            </button>
           </div>
           <input
             className="input"
@@ -203,7 +221,7 @@ export function App() {
           <div className="settings__row">
             <div>
               <div className="settings__label">Emoji</div>
-              <div className="settings__hint">:smile: 之类写法</div>
+              <div className="settings__hint">:smile: 之类</div>
             </div>
             <input
               className="settings__toggle"

@@ -9,11 +9,10 @@ import { createWatcher } from "./watcher.js";
 
 interface ServerOpts {
   rootAbs: string;
-  theme: string;
   extensions?: string[];
 }
 
-export async function startServer({ rootAbs, theme, extensions }: ServerOpts) {
+export async function startServer({ rootAbs, extensions }: ServerOpts) {
   const rootNorm = path.resolve(rootAbs);
   const exts = extensions?.length ? extensions : [...DEFAULT_EXTENSIONS];
 
@@ -53,7 +52,6 @@ export async function startServer({ rootAbs, theme, extensions }: ServerOpts) {
 
   app.get("/api/config", (_req, res) => {
     res.json({
-      theme,
       rootAbs: rootNorm,
       rootName: path.basename(rootNorm),
       extensions: exts,

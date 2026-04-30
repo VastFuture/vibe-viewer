@@ -1,44 +1,51 @@
-import { renderMermaid, THEMES } from "beautiful-mermaid";
+import mermaid from "mermaid";
+
+let initialized = false;
+
+export function initMermaid(theme: "dark" | "neutral" | "default") {
+  if (initialized) {
+    mermaid.initialize({ theme });
+    return;
+  }
+  initialized = true;
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme,
+    securityLevel: "loose",
+    fontFamily: "var(--mono), ui-monospace, SFMono-Regular, monospace",
+  });
+}
 
 export async function renderMermaidBlocks(
   container: HTMLElement,
-  { theme, isLatest }: { theme: string; isLatest: () => boolean },
+  { isLatest }: { isLatest: () => boolean },
 ) {
-  const nodes = Array.from(container.querySelectorAll("pre > code.language-mermaid"));
+  const nodes = Array.from(container.querySelectorAll("div.mermaid"));
   if (nodes.length === 0) return;
 
-  const themes = THEMES;
-  let themeObj = theme;
-  if (themes && typeof themes === "object") {
-    themeObj = themes[theme] ?? themes["tokyo-night"];
-    if (!themeObj) {
-      const keys = Object.keys(themes);
-      themeObj = keys.length ? themes[keys[0]] : theme;
-    }
-  }
-
-  for (const codeEl of nodes) {
+  for (let i = 0; i < nodes.length; i++) {
     if (!isLatest()) return;
 
-    const pre = codeEl.parentElement;
-    if (!pre) continue;
-
-    const text = codeEl.textContent ?? "";
+    const el = nodes[i] as HTMLElement;
+    const text = el.textContent ?? "";
     if (!text.trim()) continue;
 
+    const id = `mermaid-${Date.now()}-${i}`;
     try {
-      const svg = await renderMermaid(text, themeObj);
+      const { svg } = await mermaid.render(id, text);
       if (!isLatest()) return;
 
       const wrap = document.createElement("div");
       wrap.className = "bm-diagram";
-      wrap.innerHTML = String(svg);
-      pre.replaceWith(wrap);
-    } catch {
-      const err = document.createElement("div");
-      err.className = "bm-error";
-      err.textContent = "beautiful-mermaid 渲染失败（请检查语法或图类型是否受支持）";
-      pre.insertAdjacentElement("beforebegin", err);
+      wrap.innerHTML = svg;
+      el.replaceWith(wrap);
+    } catch (err) {
+      console.warn("[mermaid] render failed:", String(err));
+      const errEl = document.createElement("div");
+      errEl.className = "bm-error";
+      errEl.textContent = `Mermaid 渲染失败：${String(err).slice(0, 200)}`;
+      el.replaceWith(errEl);
     }
   }
 }

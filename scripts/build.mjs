@@ -84,5 +84,7 @@ if (isWatch) {
     esbuild.build(clientOpts),
   ]);
   copyAssets();
+  const { chmodSync } = await import("node:fs");
+  chmodSync(resolve(distDir, "cli.js"), 0o755);
   console.log("Build complete.");
 }

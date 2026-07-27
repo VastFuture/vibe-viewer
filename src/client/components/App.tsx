@@ -38,6 +38,7 @@ export function App() {
   const [wsStatus, setWsStatus] = useState<"connecting" | "open" | "closed">("connecting");
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [locateTrigger, setLocateTrigger] = useState(0);
 
   const currentAbs = current?.absPath ?? null;
   const currentMtime = current?.mtimeMs ?? null;
@@ -167,7 +168,14 @@ export function App() {
             onChange={(e) => setFilter(e.target.value)}
           />
         </div>
-        <Sidebar tree={tree} filter={filter} currentAbsPath={currentAbs} onOpen={openFile} />
+        <Sidebar 
+          tree={tree} 
+          filter={filter} 
+          currentAbsPath={currentAbs} 
+          onOpen={openFile}
+          autoLocate={settings.autoLocate}
+          locateTrigger={locateTrigger}
+        />
         <div className="settings">
           <div className="settings__title">设置</div>
           <div className="settings__row">
@@ -232,6 +240,18 @@ export function App() {
           </div>
           <div className="settings__row">
             <div>
+              <div className="settings__label">自动定位</div>
+              <div className="settings__hint">刷新后自动展开并定位到当前文件</div>
+            </div>
+            <input
+              className="settings__toggle"
+              type="checkbox"
+              checked={settings.autoLocate}
+              onChange={(e) => setSettings((s) => ({ ...s, autoLocate: e.target.checked }))}
+            />
+          </div>
+          <div className="settings__row">
+            <div>
               <div className="settings__label">数学公式</div>
               <div className="settings__hint">$...$ / $$...$$ (KaTeX)</div>
             </div>
@@ -254,6 +274,14 @@ export function App() {
             </div>
           </div>
           <div className="actions">
+            <button
+              className="btn btn--icon"
+              onClick={() => setLocateTrigger(t => t + 1)}
+              title="定位到当前文件"
+              disabled={!currentAbs}
+            >
+              📍
+            </button>
             <button
               className="btn"
               onClick={() => currentAbs && openFile(currentAbs)}

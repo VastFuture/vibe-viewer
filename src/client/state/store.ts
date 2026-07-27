@@ -6,6 +6,7 @@ export interface Settings {
   emoji: boolean;
   math: boolean;
   theme: string;
+  autoLocate: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -14,6 +15,7 @@ export const DEFAULT_SETTINGS: Settings = {
   emoji: true,
   math: true,
   theme: DEFAULT_THEME,
+  autoLocate: true,
 };
 
 const SETTINGS_KEY = "vv:settings";
@@ -30,6 +32,7 @@ export function loadSettings(): Settings {
       emoji: typeof obj.emoji === "boolean" ? obj.emoji : DEFAULT_SETTINGS.emoji,
       math: typeof obj.math === "boolean" ? obj.math : DEFAULT_SETTINGS.math,
       theme: obj.theme ?? DEFAULT_SETTINGS.theme,
+      autoLocate: typeof obj.autoLocate === "boolean" ? obj.autoLocate : DEFAULT_SETTINGS.autoLocate,
     };
   } catch {
     return DEFAULT_SETTINGS;

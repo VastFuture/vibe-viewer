@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { TreeItem } from "../../server/api.js";
 
 interface TreeProps {
@@ -6,6 +6,8 @@ interface TreeProps {
   filter: string;
   currentAbsPath: string | null;
   onOpen: (absPath: string) => void;
+  autoLocate: boolean;
+  locateTrigger?: number;
 }
 
 function filterTree(items: TreeItem[], needleLower: string): TreeItem[] {
@@ -23,10 +25,43 @@ function filterTree(items: TreeItem[], needleLower: string): TreeItem[] {
   return out;
 }
 
-export function Tree({ items, filter, currentAbsPath, onOpen }: TreeProps) {
+export function Tree({ items, filter, currentAbsPath, onOpen, autoLocate, locateTrigger }: TreeProps) {
   const needleLower = filter.trim().toLowerCase();
   const filtered = useMemo(() => filterTree(items, needleLower), [items, needleLower]);
   const [openDirs, setOpenDirs] = useState<Set<string>>(() => new Set());
+  const itemRef = useRef<HTMLDivElement>(null);
+
+  // 查找当前文件的所有父目录路径
+  function findParentDirs(items: TreeItem[], targetAbsPath: string, parents: string[] = []): string[] | null {
+    for (const it of items) {
+      if (it.type === "file" && it.absPath === targetAbsPath) {
+        return parents;
+      }
+      if (it.type === "dir") {
+        const result = findParentDirs(it.children!, targetAbsPath, [...parents, it.relPath]);
+        if (result) return result;
+      }
+    }
+    return null;
+  }
+
+  // 自动定位：刷新或手动触发时展开路径
+  useEffect(() => {
+    if (!autoLocate || !currentAbsPath) return;
+    
+    const parents = findParentDirs(items, currentAbsPath);
+    if (parents && parents.length > 0) {
+      setOpenDirs(new Set(parents));
+      
+      // 延迟滚动到当前文件
+      setTimeout(() => {
+        const activeEl = document.querySelector('.tree__item--active');
+        if (activeEl) {
+          activeEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, [currentAbsPath, items, autoLocate, locateTrigger]);
 
   function toggleDir(relPath: string) {
     setOpenDirs((s) => {
@@ -65,6 +100,7 @@ export function Tree({ items, filter, currentAbsPath, onOpen }: TreeProps) {
           className={`tree__item ${active ? "tree__item--active" : ""}`}
           style={padStyle}
           onClick={() => onOpen(it.absPath!)}
+          ref={active ? itemRef : undefined}
         >
           <div className="tree__icon">{"\u00B7"}</div>
           <div className="tree__name">{it.name}</div>

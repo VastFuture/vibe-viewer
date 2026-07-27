@@ -6,16 +6,25 @@ interface SidebarProps {
   filter: string;
   currentAbsPath: string | null;
   onOpen: (absPath: string) => void;
+  autoLocate: boolean;
+  locateTrigger?: number;
 }
 
-export function Sidebar({ tree, filter, currentAbsPath, onOpen }: SidebarProps) {
+export function Sidebar({ tree, filter, currentAbsPath, onOpen, autoLocate, locateTrigger }: SidebarProps) {
   if (!tree) return <div className="tree empty">加载文件树中...</div>;
   if (tree.items.length === 0)
     return <div className="tree empty">该目录下没有可浏览的 Markdown 文件</div>;
 
   return (
     <div className="tree">
-      <Tree items={tree.items} filter={filter} currentAbsPath={currentAbsPath} onOpen={onOpen} />
+      <Tree 
+        items={tree.items} 
+        filter={filter} 
+        currentAbsPath={currentAbsPath} 
+        onOpen={onOpen}
+        autoLocate={autoLocate}
+        locateTrigger={locateTrigger}
+      />
     </div>
   );
 }

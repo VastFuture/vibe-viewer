@@ -297,6 +297,15 @@ a:hover { text-decoration: underline; }
 
 .md input[type="checkbox"] { transform: translateY(1px); }
 
+.md img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 16px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
 /* ---- Empty state ---- */
 .empty { color: var(--text-muted); padding: 24px; font-size: 13px; }
 

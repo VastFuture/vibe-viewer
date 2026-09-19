@@ -39,6 +39,7 @@ export function App() {
   const [wsStatus, setWsStatus] = useState<"connecting" | "open" | "closed">("connecting");
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [locateTrigger, setLocateTrigger] = useState(0);
 
   const currentAbs = current?.absPath ?? null;
@@ -214,114 +215,135 @@ export function App() {
           autoLocate={settings.autoLocate}
           locateTrigger={locateTrigger}
         />
-        <div className="settings">
-          <div className="settings__title">设置</div>
-          <div className="settings__row">
-            <div>
-              <div className="settings__label">文件格式</div>
-              <div className="settings__hint">支持后缀 (逗号分隔)</div>
+        <div className={`settings ${settingsOpen ? "settings--open" : ""}`}>
+          <div
+            className="settings__header"
+            onClick={() => setSettingsOpen((o) => !o)}
+            title="点击展开/折叠设置选项"
+          >
+            <div className="settings__header-left">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.75 }}>
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              <span className="settings__title">偏好设置</span>
             </div>
-            <input
-              className="settings__input"
-              type="text"
-              value={settings.extensions}
-              onChange={(e) =>
-                setSettings((s) => ({ ...s, extensions: e.target.value }))
-              }
-              onBlur={() => syncExtensions(settings.extensions)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  (e.target as HTMLInputElement).blur();
-                }
-              }}
-              placeholder=".md, .html, .png..."
-              title="输入支持的文件后缀，回车或失焦生效"
-            />
-          </div>
-          <div className="settings__row">
-            <div>
-              <div className="settings__label">主题</div>
-              <div className="settings__hint">{THEMES.find((t) => t.name === settings.theme)?.label ?? settings.theme}</div>
+            <div className={`settings__arrow ${settingsOpen ? "settings__arrow--open" : ""}`}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
             </div>
-            <select
-              className="settings__select"
-              value={settings.theme}
-              onChange={(e) =>
-                setSettings((s) => ({ ...s, theme: e.target.value }))
-              }
-            >
-              {THEMES.map((t) => (
-                <option key={t.name} value={t.name}>{t.label}</option>
-              ))}
-            </select>
           </div>
-          <div className="settings__row">
-            <div>
-              <div className="settings__label">安全级别</div>
-              <div className="settings__hint">
-                allow-all 仅建议用于可信本地文档；strict 会禁用原生 HTML
+          {settingsOpen && (
+            <div className="settings__body">
+              <div className="settings__row">
+                <div>
+                  <div className="settings__label">文件格式</div>
+                  <div className="settings__hint">支持后缀 (逗号分隔)</div>
+                </div>
+                <input
+                  className="settings__input"
+                  type="text"
+                  value={settings.extensions}
+                  onChange={(e) =>
+                    setSettings((s) => ({ ...s, extensions: e.target.value }))
+                  }
+                  onBlur={() => syncExtensions(settings.extensions)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  placeholder=".md, .html, .png..."
+                  title="输入支持的文件后缀，回车或失焦生效"
+                />
+              </div>
+              <div className="settings__row">
+                <div>
+                  <div className="settings__label">主题</div>
+                  <div className="settings__hint">{THEMES.find((t) => t.name === settings.theme)?.label ?? settings.theme}</div>
+                </div>
+                <select
+                  className="settings__select"
+                  value={settings.theme}
+                  onChange={(e) =>
+                    setSettings((s) => ({ ...s, theme: e.target.value }))
+                  }
+                >
+                  {THEMES.map((t) => (
+                    <option key={t.name} value={t.name}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="settings__row">
+                <div>
+                  <div className="settings__label">安全级别</div>
+                  <div className="settings__hint">
+                    allow-all 允许脚本；strict 禁用原生 HTML
+                  </div>
+                </div>
+                <select
+                  className="settings__select"
+                  value={settings.securityLevel}
+                  onChange={(e) =>
+                    setSettings((s) => ({ ...s, securityLevel: e.target.value as Settings["securityLevel"] }))
+                  }
+                >
+                  <option value="allow-all">allow-all</option>
+                  <option value="allow-html">allow-html</option>
+                  <option value="strict">strict</option>
+                </select>
+              </div>
+              <div className="settings__row">
+                <div>
+                  <div className="settings__label">软换行</div>
+                  <div className="settings__hint">VS Code 风格软折行</div>
+                </div>
+                <input
+                  className="settings__toggle"
+                  type="checkbox"
+                  checked={settings.breaks}
+                  onChange={(e) => setSettings((s) => ({ ...s, breaks: e.target.checked }))}
+                />
+              </div>
+              <div className="settings__row">
+                <div>
+                  <div className="settings__label">Emoji 渲染</div>
+                  <div className="settings__hint">:smile: 转换</div>
+                </div>
+                <input
+                  className="settings__toggle"
+                  type="checkbox"
+                  checked={settings.emoji}
+                  onChange={(e) => setSettings((s) => ({ ...s, emoji: e.target.checked }))}
+                />
+              </div>
+              <div className="settings__row">
+                <div>
+                  <div className="settings__label">自动定位当前文件</div>
+                  <div className="settings__hint">刷新后自动展开树并定位</div>
+                </div>
+                <input
+                  className="settings__toggle"
+                  type="checkbox"
+                  checked={settings.autoLocate}
+                  onChange={(e) => setSettings((s) => ({ ...s, autoLocate: e.target.checked }))}
+                />
+              </div>
+              <div className="settings__row">
+                <div>
+                  <div className="settings__label">KaTeX 数学公式</div>
+                  <div className="settings__hint">$...$ / $$...$$</div>
+                </div>
+                <input
+                  className="settings__toggle"
+                  type="checkbox"
+                  checked={settings.math}
+                  onChange={(e) => setSettings((s) => ({ ...s, math: e.target.checked }))}
+                />
               </div>
             </div>
-            <select
-              className="settings__select"
-              value={settings.securityLevel}
-              onChange={(e) =>
-                setSettings((s) => ({ ...s, securityLevel: e.target.value as Settings["securityLevel"] }))
-              }
-            >
-              <option value="allow-all">allow-all</option>
-              <option value="allow-html">allow-html</option>
-              <option value="strict">strict</option>
-            </select>
-          </div>
-          <div className="settings__row">
-            <div>
-              <div className="settings__label">软换行</div>
-              <div className="settings__hint">对应 VS Code markdown.preview.breaks</div>
-            </div>
-            <input
-              className="settings__toggle"
-              type="checkbox"
-              checked={settings.breaks}
-              onChange={(e) => setSettings((s) => ({ ...s, breaks: e.target.checked }))}
-            />
-          </div>
-          <div className="settings__row">
-            <div>
-              <div className="settings__label">Emoji</div>
-              <div className="settings__hint">:smile: 之类</div>
-            </div>
-            <input
-              className="settings__toggle"
-              type="checkbox"
-              checked={settings.emoji}
-              onChange={(e) => setSettings((s) => ({ ...s, emoji: e.target.checked }))}
-            />
-          </div>
-          <div className="settings__row">
-            <div>
-              <div className="settings__label">自动定位</div>
-              <div className="settings__hint">刷新后自动展开并定位到当前文件</div>
-            </div>
-            <input
-              className="settings__toggle"
-              type="checkbox"
-              checked={settings.autoLocate}
-              onChange={(e) => setSettings((s) => ({ ...s, autoLocate: e.target.checked }))}
-            />
-          </div>
-          <div className="settings__row">
-            <div>
-              <div className="settings__label">数学公式</div>
-              <div className="settings__hint">$...$ / $$...$$ (KaTeX)</div>
-            </div>
-            <input
-              className="settings__toggle"
-              type="checkbox"
-              checked={settings.math}
-              onChange={(e) => setSettings((s) => ({ ...s, math: e.target.checked }))}
-            />
-          </div>
+          )}
         </div>
       </div>
       <div className="panel preview">

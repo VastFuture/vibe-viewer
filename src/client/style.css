@@ -482,25 +482,65 @@ a:hover {
   margin: 8px 0;
 }
 
-/* ---- Settings Panel (Clean, Structured) ---- */
+/* ---- Settings Panel (Collapsible, Linear-inspired Drawer) ---- */
 .settings {
-  padding: 14px;
   border-top: 1px solid var(--border);
   background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
 }
+
+.settings__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast);
+}
+.settings__header:hover {
+  background: var(--bg-hover);
+}
+
+.settings__header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .settings__title {
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-muted);
-  margin: 0 0 10px;
-  letter-spacing: 0.08em;
+  color: var(--text-heading);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
+
+.settings__arrow {
+  width: 14px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+.settings__arrow--open {
+  transform: rotate(180deg);
+}
+
+.settings__body {
+  padding: 4px 14px 12px;
+  max-height: 260px;
+  overflow-y: auto;
+  animation: fsFadeIn 0.12s ease-out;
+}
+
 .settings__row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 7px 0;
+  padding: 6px 0;
 }
 .settings__row + .settings__row {
   border-top: 1px solid var(--border-dashed);
@@ -511,7 +551,7 @@ a:hover {
   color: var(--text);
 }
 .settings__hint  {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
   margin-top: 1px;
 }
@@ -521,7 +561,7 @@ a:hover {
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 5px 8px;
+  padding: 4px 8px;
   font-size: 11px;
   outline: none;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
@@ -532,8 +572,11 @@ a:hover {
   box-shadow: 0 0 0 2px var(--accent-shadow);
 }
 .settings__input {
-  width: 130px;
+  width: 120px;
   box-sizing: border-box;
+}
+.settings__select {
+  cursor: pointer;
 }
 .settings__select option {
   background: var(--bg-root);
@@ -542,8 +585,8 @@ a:hover {
 .settings__toggle {
   accent-color: var(--accent);
   cursor: pointer;
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
 }
 
 /* ---- Preview formats (HTML / Image Full Viewer) ---- */

@@ -53,8 +53,6 @@ function attachMermaidClicks(container: HTMLElement, onOpen: (svgHtml: string) =
   }
 }
 
-// ---- Fullscreen Lightbox ----
-
 function svgToImgUrl(raw: string): string {
   const fixed = raw.replace(/var\(--[a-z-]+\)/g, (match) => {
     const map: Record<string, string> = {
@@ -68,33 +66,62 @@ function svgToImgUrl(raw: string): string {
   return URL.createObjectURL(blob);
 }
 
-const FS_ZOOM_STEPS = [20, 40, 60, 80, 100, 130, 160, 200, 260, 320, 400, 500];
+const ZOOM_STEPS = [10, 25, 50, 75, 100, 125, 150, 200, 300, 400, 600, 800];
 
-function FullscreenViewer({ svgHtml, onClose, isLight }: { svgHtml: string; onClose: () => void; isLight: boolean }) {
-  const [zoom, setZoom] = useState(100);
+/* ── 通用全功能图片交互查看器 (可内嵌可全屏，支持滚轮缩放、拖拽平移、适应视口、全屏切换) ── */
+function ImageViewer({
+  src,
+  alt,
+  meta,
+  fullscreen = false,
+  onClose,
+  isLight,
+}: {
+  src: string;
+  alt: string;
+  meta?: string;
+  fullscreen?: boolean;
+  onClose?: () => void;
+  isLight?: boolean;
+}) {
+  const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const imgUrl = useMemo(() => svgToImgUrl(svgHtml), [svgHtml]);
+  const [fitMode, setFitMode] = useState<"contain" | "actual">("contain");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ active: false, sx: 0, sy: 0, px: 0, py: 0 });
 
-  useEffect(() => () => URL.revokeObjectURL(imgUrl), [imgUrl]);
+  const resetFit = useCallback(() => {
+    setScale(1);
+    setPan({ x: 0, y: 0 });
+    setFitMode("contain");
+  }, []);
+
+  const actualSize = useCallback(() => {
+    setScale(1);
+    setPan({ x: 0, y: 0 });
+    setFitMode("actual");
+  }, []);
 
   const stepZoom = useCallback((dir: 1 | -1) => {
-    setZoom((z) => {
-      const idx = FS_ZOOM_STEPS.findIndex((s) => s >= z);
-      const next = idx === -1
-        ? (dir === 1 ? FS_ZOOM_STEPS.length - 1 : 0)
-        : Math.max(0, Math.min(FS_ZOOM_STEPS.length - 1, idx + dir));
-      return FS_ZOOM_STEPS[next];
+    setFitMode("actual");
+    setScale((s) => {
+      const currentPct = Math.round(s * 100);
+      const idx = ZOOM_STEPS.findIndex((step) => step >= currentPct);
+      let nextPct: number;
+      if (idx === -1) {
+        nextPct = dir === 1 ? ZOOM_STEPS[ZOOM_STEPS.length - 1] : ZOOM_STEPS[0];
+      } else {
+        const nextIdx = Math.max(0, Math.min(ZOOM_STEPS.length - 1, idx + dir));
+        nextPct = ZOOM_STEPS[nextIdx];
+      }
+      return nextPct / 100;
     });
   }, []);
 
-  const resetView = useCallback(() => {
-    setZoom(100);
-    setPan({ x: 0, y: 0 });
-  }, []);
-
+  // 滚轮缩放支持
   useEffect(() => {
-    const vp = document.getElementById("fs-viewport");
+    const vp = viewportRef.current;
     if (!vp) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
@@ -104,14 +131,19 @@ function FullscreenViewer({ svgHtml, onClose, isLight }: { svgHtml: string; onCl
     return () => vp.removeEventListener("wheel", onWheel);
   }, [stepZoom]);
 
+  // 全屏模式下 Esc 退出
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (fullscreen && onClose) onClose();
+        else if (isFullscreen) setIsFullscreen(false);
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [fullscreen, onClose, isFullscreen]);
 
+  // 指针拖拽平移
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;
     e.preventDefault();
@@ -129,40 +161,78 @@ function FullscreenViewer({ svgHtml, onClose, isLight }: { svgHtml: string; onCl
     dragRef.current.active = false;
   }, []);
 
-  const pct = zoom;
+  const effectiveFs = fullscreen || isFullscreen;
+  const zoomDisplay = Math.round(scale * 100);
 
-  return (
-    <div className={`fs-overlay${isLight ? " fs-light" : ""}`} onClick={onClose}>
-      <div className="fs-toolbar" onClick={(e) => e.stopPropagation()}>
-        <span className="fs-zoom-label">{pct}%</span>
-        <button className="fs-btn" onClick={() => stepZoom(1)} title="放大">+</button>
-        <button className="fs-btn" onClick={() => stepZoom(-1)} title="缩小">−</button>
-        <button className="fs-btn" onClick={resetView} title="还原">1:1</button>
-        <button className="fs-btn fs-close" onClick={onClose} title="关闭 (Esc)">✕</button>
+  const content = (
+    <div
+      className={`img-viewer-container${effectiveFs ? " img-viewer-container--fs" : ""}${isLight ? " img-viewer--light" : ""}`}
+    >
+      {/* 控制栏 */}
+      <div className="img-viewer__toolbar">
+        <span className="img-viewer__zoom-label">{zoomDisplay}%</span>
+        <button className="img-viewer__btn" onClick={() => stepZoom(1)} title="放大 (+)">
+          +
+        </button>
+        <button className="img-viewer__btn" onClick={() => stepZoom(-1)} title="缩小 (-)">
+          −
+        </button>
+        <button
+          className={`img-viewer__btn ${fitMode === "contain" ? "img-viewer__btn--active" : ""}`}
+          onClick={resetFit}
+          title="自适应全幅占满视口"
+        >
+          适应
+        </button>
+        <button
+          className={`img-viewer__btn ${fitMode === "actual" ? "img-viewer__btn--active" : ""}`}
+          onClick={actualSize}
+          title="1:1 原始尺寸"
+        >
+          1:1
+        </button>
+
+        {/* 全屏切换按钮 */}
+        {!fullscreen ? (
+          <button
+            className="img-viewer__btn"
+            onClick={() => setIsFullscreen((f) => !f)}
+            title={isFullscreen ? "退出全屏 (Esc)" : "全屏查看"}
+          >
+            {isFullscreen ? "退出全屏" : "全屏"}
+          </button>
+        ) : (
+          <button className="img-viewer__btn img-viewer__btn--close" onClick={onClose} title="关闭 (Esc)">
+            ✕
+          </button>
+        )}
+
+        {meta && <span className="img-viewer__meta">{meta}</span>}
       </div>
 
+      {/* 视口画布 */}
       <div
-        id="fs-viewport"
-        className="fs-viewport"
+        ref={viewportRef}
+        className="img-viewer__viewport"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        onClick={(e) => e.stopPropagation()}
       >
         <img
-          className="fs-img"
-          src={imgUrl}
-          alt="Mermaid 全屏预览"
+          src={src}
+          alt={alt}
           draggable={false}
+          className={`img-viewer__img ${fitMode === "contain" ? "img-viewer__img--contain" : "img-viewer__img--actual"}`}
           style={{
-            width: `${pct}%`,
-            transform: `translate(${pan.x}px, ${pan.y}px)`,
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
           }}
         />
       </div>
     </div>
   );
+
+  return content;
 }
 
 export function Preview({
@@ -195,6 +265,7 @@ export function Preview({
   const content = file?.content ?? "";
   const currentAbsPath = file?.absPath ?? "";
   const rootAbs = config?.rootAbs ?? "";
+  const isLight = settings.theme === "github-light";
   const mermaidTheme = THEMES.find((t) => t.name === settings.theme)?.mermaid ?? "dark";
 
   const mdHtml = useMemo(() => {
@@ -236,26 +307,27 @@ export function Preview({
   if (!file)
     return <div className="preview__body empty">请选择一个文件开始预览</div>;
 
+  // 图片文件展示：默认自适应占满右侧区域，支持平移缩放全屏
   if (file.fileType === "image") {
     const rawSrc = `/raw?path=${encodeURIComponent(file.absPath)}`;
+    const sizeStr = `${(file.size / 1024).toFixed(1)} KB`;
     return (
-      <div className="preview__body preview__body--image">
-        <div className="preview-image-container">
-          <img src={rawSrc} alt={file.relPath ?? file.absPath} />
-          <div className="preview-image-meta">
-            <span>{file.relPath ?? file.absPath}</span>
-            <span> · </span>
-            <span>{(file.size / 1024).toFixed(1)} KB</span>
-          </div>
-        </div>
+      <div className="preview__body preview__body--fill">
+        <ImageViewer
+          src={rawSrc}
+          alt={file.relPath ?? file.absPath}
+          meta={sizeStr}
+          isLight={isLight}
+        />
       </div>
     );
   }
 
+  // HTML 沙箱网页展示：占满右侧全区域
   if (file.fileType === "html") {
     const rawSrc = `/raw?path=${encodeURIComponent(file.absPath)}`;
     return (
-      <div className="preview__body preview__body--iframe">
+      <div className="preview__body preview__body--fill">
         <iframe
           src={rawSrc}
           title={file.relPath ?? file.absPath}
@@ -266,9 +338,18 @@ export function Preview({
     );
   }
 
+  // Markdown 文档展示
   return (
     <>
-      {fsSvg ? <FullscreenViewer svgHtml={fsSvg} onClose={() => setFsSvg(null)} isLight={settings.theme === "github-light"} /> : null}
+      {fsSvg ? (
+        <ImageViewer
+          src={svgToImgUrl(fsSvg)}
+          alt="Mermaid 全屏预览"
+          fullscreen={true}
+          onClose={() => setFsSvg(null)}
+          isLight={isLight}
+        />
+      ) : null}
 
       <div className="preview__body">
         <div className="md">

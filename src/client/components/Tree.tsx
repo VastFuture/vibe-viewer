@@ -25,6 +25,33 @@ function filterTree(items: TreeItem[], needleLower: string): TreeItem[] {
   return out;
 }
 
+function getFileIcon(name: string) {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".gif") || lower.endsWith(".svg") || lower.endsWith(".webp") || lower.endsWith(".ico")) {
+    return (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <polyline points="21 15 16 10 5 21" />
+      </svg>
+    );
+  }
+  if (lower.endsWith(".html") || lower.endsWith(".htm")) {
+    return (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="16 18 22 12 16 6" />
+        <polyline points="8 6 2 12 8 18" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
+
 export function Tree({ items, filter, currentAbsPath, onOpen, autoLocate, locateTrigger }: TreeProps) {
   const needleLower = filter.trim().toLowerCase();
   const filtered = useMemo(() => filterTree(items, needleLower), [items, needleLower]);
@@ -81,11 +108,15 @@ export function Tree({ items, filter, currentAbsPath, onOpen, autoLocate, locate
         return (
           <div key={it.relPath}>
             <div
-              className="tree__item"
+              className="tree__item tree__item--dir"
               style={padStyle}
               onClick={() => toggleDir(it.relPath)}
             >
-              <div className="tree__icon">{opened ? "-" : "+"}</div>
+              <div className={`tree__chevron ${opened ? "tree__chevron--open" : ""}`}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
               <div className="tree__name">{it.name}</div>
             </div>
             {opened ? <div>{renderItems(it.children!, depth + 1)}</div> : null}
@@ -102,7 +133,9 @@ export function Tree({ items, filter, currentAbsPath, onOpen, autoLocate, locate
           onClick={() => onOpen(it.absPath!)}
           ref={active ? itemRef : undefined}
         >
-          <div className="tree__icon">{"\u00B7"}</div>
+          <div className="tree__fileicon">
+            {getFileIcon(it.name)}
+          </div>
           <div className="tree__name">{it.name}</div>
         </div>
       );

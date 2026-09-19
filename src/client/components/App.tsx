@@ -30,6 +30,7 @@ async function fetchJson(url: string) {
 
 export function App() {
   const [config, setConfig] = useState<Config | null>(null);
+  const [copied, setCopied] = useState(false);
   const [tree, setTree] = useState<FileTree | null>(null);
   const [filter, setFilter] = useState("");
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
@@ -44,6 +45,14 @@ export function App() {
   const currentMtime = current?.mtimeMs ?? null;
   const currentAbsRef = useRef(currentAbs);
   useEffect(() => { currentAbsRef.current = currentAbs; }, [currentAbs]);
+
+  const copyPath = useCallback(() => {
+    if (!currentAbs) return;
+    navigator.clipboard?.writeText(currentAbs).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }, [currentAbs]);
 
   const syncExtensions = useCallback(async (extsStr: string) => {
     try {
@@ -166,7 +175,9 @@ export function App() {
           onClick={() => setSidebarOpen(true)}
           title="展开侧边栏"
         >
-          ▶
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
         </button>
       )}
       <div className="panel sidebar">
@@ -183,7 +194,9 @@ export function App() {
               onClick={() => setSidebarOpen(false)}
               title="收起侧边栏"
             >
-              ◀
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
             </button>
           </div>
           <input
@@ -314,7 +327,20 @@ export function App() {
       <div className="panel preview">
         <div className="preview__header">
           <div className="filemeta">
-            <div className="filemeta__path">{currentAbs ?? "未打开文件"}</div>
+            <div className="filemeta__path-row">
+              <div className="filemeta__path" title={currentAbs ?? "未打开文件"}>
+                {currentAbs ?? "未打开文件"}
+              </div>
+              {currentAbs && (
+                <button
+                  className="btn btn--copy"
+                  onClick={copyPath}
+                  title="复制绝对路径"
+                >
+                  {copied ? "已复制" : "复制"}
+                </button>
+              )}
+            </div>
             <div className="filemeta__sub">
               {currentMtime ? `mtime: ${new Date(currentMtime).toLocaleString()}` : " "}
               {error ? ` · ${error}` : ""}
@@ -324,16 +350,27 @@ export function App() {
             <button
               className="btn btn--icon"
               onClick={() => setLocateTrigger(t => t + 1)}
-              title="定位到当前文件"
+              title="在目录树中定位当前文件"
               disabled={!currentAbs}
             >
-              📍
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <circle cx="12" cy="12" r="3" />
+                <line x1="12" y1="2" x2="12" y2="5" />
+                <line x1="12" y1="19" x2="12" y2="22" />
+                <line x1="2" y1="12" x2="5" y2="12" />
+                <line x1="19" y1="12" x2="22" y2="12" />
+              </svg>
             </button>
             <button
               className="btn"
               onClick={() => currentAbs && openFile(currentAbs)}
             >
-              重新加载
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 5, verticalAlign: "-1px" }}>
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+              刷新
             </button>
           </div>
         </div>

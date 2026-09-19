@@ -96,7 +96,12 @@ async function main() {
 
   if (shouldOpen) {
     try {
-      await open(url);
+      if (process.platform === "win32") {
+        const { exec } = await import("node:child_process");
+        exec(`start "" "${url}"`);
+      } else {
+        await open(url);
+      }
     } catch (err) {
       console.error("打开浏览器失败，请手动访问：", url);
       console.error(String(err));

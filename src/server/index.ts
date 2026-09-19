@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
-import { buildTree, readMarkdownFile, isMarkdownPath, DEFAULT_EXTENSIONS } from "./api.js";
+import { buildTree, readMarkdownFile, isMarkdownPath, DEFAULT_EXTENSIONS, normalizeExtensions } from "./api.js";
 import { createWatcher } from "./watcher.js";
 
 interface ServerOpts {
@@ -14,12 +14,13 @@ interface ServerOpts {
 
 export async function startServer({ rootAbs, extensions }: ServerOpts) {
   const rootNorm = path.resolve(rootAbs);
-  const exts = extensions?.length ? extensions : [...DEFAULT_EXTENSIONS];
+  let exts = extensions?.length ? normalizeExtensions(extensions) : [...DEFAULT_EXTENSIONS];
 
   const distDir = path.dirname(fileURLToPath(import.meta.url));
   const publicDir = path.join(distDir, "public");
 
   const app = express();
+  app.use(express.json());
   const server = http.createServer(app);
 
   const sockets = new Set<import("node:net").Socket>();
@@ -58,6 +59,20 @@ export async function startServer({ rootAbs, extensions }: ServerOpts) {
     });
   });
 
+  app.post("/api/config", (req, res) => {
+    const rawExts = req.body?.extensions;
+    if (rawExts) {
+      exts = normalizeExtensions(rawExts);
+      watcher.setExtensions(exts);
+      broadcast({ type: "tree-changed" });
+    }
+    res.json({
+      rootAbs: rootNorm,
+      rootName: path.basename(rootNorm),
+      extensions: exts,
+    });
+  });
+
   app.get("/api/tree", async (_req, res) => {
     try {
       const tree = await buildTree(rootNorm, exts);
@@ -73,7 +88,7 @@ export async function startServer({ rootAbs, extensions }: ServerOpts) {
 
     const absPath = path.resolve(p);
     if (!isMarkdownPath(absPath, exts))
-      return res.status(400).json({ error: "仅支持 Markdown 文件" });
+      return res.status(400).json({ error: "不支持的文件格式" });
 
     try {
       const file = await readMarkdownFile(absPath, rootNorm, exts);

@@ -13,7 +13,7 @@ interface SidebarProps {
 export function Sidebar({ tree, filter, currentAbsPath, onOpen, autoLocate, locateTrigger }: SidebarProps) {
   if (!tree) return <div className="tree empty">加载文件树中...</div>;
   if (tree.items.length === 0)
-    return <div className="tree empty">该目录下没有可浏览的 Markdown 文件</div>;
+    return <div className="tree empty">该目录下没有可浏览的文件（可在下方设置文件格式）</div>;
 
   return (
     <div className="tree">

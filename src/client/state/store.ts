@@ -7,7 +7,10 @@ export interface Settings {
   math: boolean;
   theme: string;
   autoLocate: boolean;
+  extensions: string;
 }
+
+export const DEFAULT_EXTENSIONS_STR = ".md, .mdx, .html, .htm, .png, .jpg, .jpeg, .gif, .svg, .webp";
 
 export const DEFAULT_SETTINGS: Settings = {
   securityLevel: "allow-all",
@@ -16,6 +19,7 @@ export const DEFAULT_SETTINGS: Settings = {
   math: true,
   theme: DEFAULT_THEME,
   autoLocate: true,
+  extensions: DEFAULT_EXTENSIONS_STR,
 };
 
 const SETTINGS_KEY = "vv:settings";
@@ -33,6 +37,7 @@ export function loadSettings(): Settings {
       math: typeof obj.math === "boolean" ? obj.math : DEFAULT_SETTINGS.math,
       theme: obj.theme ?? DEFAULT_SETTINGS.theme,
       autoLocate: typeof obj.autoLocate === "boolean" ? obj.autoLocate : DEFAULT_SETTINGS.autoLocate,
+      extensions: typeof obj.extensions === "string" ? obj.extensions : DEFAULT_SETTINGS.extensions,
     };
   } catch {
     return DEFAULT_SETTINGS;

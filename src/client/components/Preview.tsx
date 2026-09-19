@@ -234,7 +234,37 @@ export function Preview({
   }, [mdHtml, file, config, rootAbs, currentAbsPath, settings.securityLevel, onOpenFile, mermaidTheme, pendingHash, onHashConsumed]);
 
   if (!file)
-    return <div className="preview__body empty">请选择一个 Markdown 文件开始预览</div>;
+    return <div className="preview__body empty">请选择一个文件开始预览</div>;
+
+  if (file.fileType === "image") {
+    const rawSrc = `/raw?path=${encodeURIComponent(file.absPath)}`;
+    return (
+      <div className="preview__body preview__body--image">
+        <div className="preview-image-container">
+          <img src={rawSrc} alt={file.relPath ?? file.absPath} />
+          <div className="preview-image-meta">
+            <span>{file.relPath ?? file.absPath}</span>
+            <span> · </span>
+            <span>{(file.size / 1024).toFixed(1)} KB</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (file.fileType === "html") {
+    const rawSrc = `/raw?path=${encodeURIComponent(file.absPath)}`;
+    return (
+      <div className="preview__body preview__body--iframe">
+        <iframe
+          src={rawSrc}
+          title={file.relPath ?? file.absPath}
+          className="preview-iframe"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        />
+      </div>
+    );
+  }
 
   return (
     <>

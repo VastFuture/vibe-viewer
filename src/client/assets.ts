@@ -21,9 +21,21 @@ function isExternalOrSafePassthrough(url: string) {
   );
 }
 
-function isMarkdownLike(p: string) {
+function isViewableLink(p: string) {
   const lower = p.toLowerCase();
-  return lower.endsWith(".md") || lower.endsWith(".mdx") || lower.endsWith(".markdown");
+  return (
+    lower.endsWith(".md") ||
+    lower.endsWith(".mdx") ||
+    lower.endsWith(".markdown") ||
+    lower.endsWith(".html") ||
+    lower.endsWith(".htm") ||
+    lower.endsWith(".png") ||
+    lower.endsWith(".jpg") ||
+    lower.endsWith(".jpeg") ||
+    lower.endsWith(".gif") ||
+    lower.endsWith(".svg") ||
+    lower.endsWith(".webp")
+  );
 }
 
 function resolveToAbsPath(
@@ -110,7 +122,7 @@ export function rewriteLocalAssets(container: HTMLElement, opts: RewriteOpts) {
 
     const abs = resolveToAbsPath(pathPart, { rootAbs, currentAbsPath });
 
-    if (isMarkdownLike(pathPart)) {
+    if (isViewableLink(pathPart)) {
       a.setAttribute("href", "#");
       a.addEventListener("click", (ev) => {
         ev.preventDefault();

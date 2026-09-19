@@ -11,6 +11,7 @@ interface WatcherOpts {
 
 export function createWatcher({ rootAbs, extensions, broadcast }: WatcherOpts) {
   const rootNorm = path.resolve(rootAbs);
+  let activeExtensions = [...extensions];
   let treeTimer: ReturnType<typeof setTimeout> | null = null;
 
   function scheduleTreeChanged() {
@@ -39,7 +40,7 @@ export function createWatcher({ rootAbs, extensions, broadcast }: WatcherOpts) {
       if (stats?.isFIFO?.()) return true;
       if (stats?.isBlockDevice?.()) return true;
       if (stats?.isCharacterDevice?.()) return true;
-      if (stats?.isFile?.() && !isMarkdownPath(p, extensions)) return true;
+      if (stats?.isFile?.() && !isMarkdownPath(p, activeExtensions)) return true;
       if (!stats) {
         const lower = base.toLowerCase();
         if (lower.endsWith(".sock")) return true;
@@ -54,7 +55,7 @@ export function createWatcher({ rootAbs, extensions, broadcast }: WatcherOpts) {
 
   async function emitFileChanged(absPath: string) {
     const abs = path.resolve(absPath);
-    if (!isMarkdownPath(abs, extensions)) return;
+    if (!isMarkdownPath(abs, activeExtensions)) return;
     try {
       const st = await fs.stat(abs);
       broadcast({ type: "file-changed", absPath: abs, mtimeMs: st.mtimeMs });
@@ -75,7 +76,7 @@ export function createWatcher({ rootAbs, extensions, broadcast }: WatcherOpts) {
     });
     w.on("add", (p) => {
       const abs = path.resolve(p);
-      if (!isMarkdownPath(abs, extensions)) return;
+      if (!isMarkdownPath(abs, activeExtensions)) return;
       if (isWithinRoot(abs)) {
         console.log(`[watcher] file added: ${path.relative(rootNorm, p)}`);
         scheduleTreeChanged();
@@ -83,7 +84,7 @@ export function createWatcher({ rootAbs, extensions, broadcast }: WatcherOpts) {
     });
     w.on("unlink", (p) => {
       const abs = path.resolve(p);
-      if (!isMarkdownPath(abs, extensions)) return;
+      if (!isMarkdownPath(abs, activeExtensions)) return;
       if (isWithinRoot(abs)) {
         console.log(`[watcher] file removed: ${path.relative(rootNorm, p)}`);
         scheduleTreeChanged();
@@ -144,6 +145,9 @@ export function createWatcher({ rootAbs, extensions, broadcast }: WatcherOpts) {
   attachWatcherHandlers(watcher);
 
   return {
+    setExtensions(newExts: string[]) {
+      activeExtensions = [...newExts];
+    },
     addFile(absPath: string) {
       const abs = path.resolve(absPath);
       EXPLICIT_FILES.add(abs);

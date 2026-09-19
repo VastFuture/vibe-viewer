@@ -1,7 +1,42 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-export const DEFAULT_EXTENSIONS = [".md", ".mdx", ".markdown"];
+export const DEFAULT_MARKDOWN_EXTENSIONS = [".md", ".mdx", ".markdown"];
+export const DEFAULT_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".bmp"];
+export const DEFAULT_HTML_EXTENSIONS = [".html", ".htm"];
+export const DEFAULT_EXTENSIONS = [
+  ...DEFAULT_MARKDOWN_EXTENSIONS,
+  ...DEFAULT_HTML_EXTENSIONS,
+  ...DEFAULT_IMAGE_EXTENSIONS,
+];
+
+export type FileViewerType = "markdown" | "image" | "html" | "text";
+
+export function normalizeExtensions(exts: string[] | string): string[] {
+  const rawList = Array.isArray(exts) ? exts : exts.split(/[,;\s]+/);
+  return Array.from(
+    new Set(
+      rawList
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean)
+        .map((e) => (e.startsWith(".") ? e : `.${e}`))
+    )
+  );
+}
+
+export function getFileViewerType(absPath: string): FileViewerType {
+  const lower = absPath.toLowerCase();
+  if (DEFAULT_IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext))) {
+    return "image";
+  }
+  if (DEFAULT_HTML_EXTENSIONS.some((ext) => lower.endsWith(ext))) {
+    return "html";
+  }
+  if (DEFAULT_MARKDOWN_EXTENSIONS.some((ext) => lower.endsWith(ext))) {
+    return "markdown";
+  }
+  return "text";
+}
 
 const IGNORED_DIRS = new Set([".git", "node_modules"]);
 
@@ -27,8 +62,11 @@ export interface MarkdownFile {
   relPath: string | null;
   mtimeMs: number;
   size: number;
+  fileType: FileViewerType;
   content: string;
 }
+
+export type ViewerFile = MarkdownFile;
 
 function toPosixRelPath(...parts: (string | undefined | null)[]) {
   return parts.filter(Boolean).join("/").replaceAll("\\", "/");
@@ -116,11 +154,19 @@ export async function readMarkdownFile(
     throw new Error("path 必须是绝对路径");
   }
   if (!isMarkdownPath(absPath, extensions)) {
-    throw new Error("仅支持读取 Markdown 扩展名文件");
+    throw new Error("不支持读取该格式的文件");
   }
 
   const st = await fs.stat(absPath);
-  const content = await fs.readFile(absPath, "utf8");
+  const fileType = getFileViewerType(absPath);
+  let content = "";
+  if (fileType !== "image") {
+    try {
+      content = await fs.readFile(absPath, "utf8");
+    } catch {
+      content = "";
+    }
+  }
 
   const relPath = absPath === rootAbs
     ? ""
@@ -133,6 +179,7 @@ export async function readMarkdownFile(
     relPath: relPath ? relPath.replaceAll("\\", "/") : relPath,
     mtimeMs: st.mtimeMs,
     size: st.size,
+    fileType,
     content,
   };
 }

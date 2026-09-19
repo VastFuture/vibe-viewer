@@ -45,6 +45,22 @@ export function App() {
   const currentAbsRef = useRef(currentAbs);
   useEffect(() => { currentAbsRef.current = currentAbs; }, [currentAbs]);
 
+  const syncExtensions = useCallback(async (extsStr: string) => {
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ extensions: extsStr }),
+      });
+      if (res.ok) {
+        const cfg = await res.json();
+        setConfig(cfg);
+        const tr = await fetchJson("/api/tree");
+        setTree(tr);
+      }
+    } catch {}
+  }, []);
+
   const openFile = useCallback(async (absPath: string, hash?: string) => {
     setError(null);
     setPendingHash(hash ?? null);
@@ -62,6 +78,15 @@ export function App() {
     let canceled = false;
     (async () => {
       try {
+        if (settings.extensions) {
+          try {
+            await fetch("/api/config", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ extensions: settings.extensions }),
+            });
+          } catch {}
+        }
         const [cfg, tr] = await Promise.all([
           fetchJson("/api/config"),
           fetchJson("/api/tree"),
@@ -178,6 +203,28 @@ export function App() {
         />
         <div className="settings">
           <div className="settings__title">设置</div>
+          <div className="settings__row">
+            <div>
+              <div className="settings__label">文件格式</div>
+              <div className="settings__hint">支持后缀 (逗号分隔)</div>
+            </div>
+            <input
+              className="settings__input"
+              type="text"
+              value={settings.extensions}
+              onChange={(e) =>
+                setSettings((s) => ({ ...s, extensions: e.target.value }))
+              }
+              onBlur={() => syncExtensions(settings.extensions)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  (e.target as HTMLInputElement).blur();
+                }
+              }}
+              placeholder=".md, .html, .png..."
+              title="输入支持的文件后缀，回车或失焦生效"
+            />
+          </div>
           <div className="settings__row">
             <div>
               <div className="settings__label">主题</div>

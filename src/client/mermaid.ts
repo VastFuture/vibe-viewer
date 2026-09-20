@@ -1,13 +1,12 @@
 import mermaid from "mermaid";
 
 let initialized = false;
+let currentTheme: "dark" | "neutral" | "default" | null = null;
 
 export function initMermaid(theme: "dark" | "neutral" | "default") {
-  if (initialized) {
-    mermaid.initialize({ theme });
-    return;
-  }
+  if (initialized && currentTheme === theme) return;
   initialized = true;
+  currentTheme = theme;
 
   mermaid.initialize({
     startOnLoad: false,

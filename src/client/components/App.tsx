@@ -47,6 +47,8 @@ export function App() {
   const currentAbsRef = useRef(currentAbs);
   useEffect(() => { currentAbsRef.current = currentAbs; }, [currentAbs]);
 
+  const handleHashConsumed = useCallback(() => setPendingHash(null), []);
+
   const copyPath = useCallback(() => {
     if (!currentAbs) return;
     navigator.clipboard?.writeText(currentAbs).then(() => {
@@ -401,7 +403,7 @@ export function App() {
           file={current}
           settings={settings}
           pendingHash={pendingHash}
-          onHashConsumed={() => setPendingHash(null)}
+          onHashConsumed={handleHashConsumed}
           onOpenFile={openFile}
         />
       </div>

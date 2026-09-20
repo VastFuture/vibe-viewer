@@ -274,9 +274,13 @@ export function Preview({
     return sanitizeIfNeeded(raw, settings.securityLevel);
   }, [file, content, settings, highlighter]);
 
+  // 渲染正文与 Mermaid：仅在内容、文件路径、安全级别或主题真正变化时执行。
+  // 刻意不依赖 pendingHash / onHashConsumed / file 等每次父组件渲染都会换引用的值，
+  // 否则任何父级 re-render 都会重置 DOM 并重绘全部 Mermaid 图，造成反复闪烁。
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    if (!currentAbsPath || !rootAbs) return;
 
     renderSeq.current += 1;
     const seq = renderSeq.current;
@@ -284,25 +288,26 @@ export function Preview({
 
     el.innerHTML = mdHtml;
 
-    if (file && config) {
-      rewriteLocalAssets(el, {
-        rootAbs,
-        currentAbsPath,
-        securityLevel: settings.securityLevel,
-        openMarkdownFile: onOpenFile,
-      });
+    rewriteLocalAssets(el, {
+      rootAbs,
+      currentAbsPath,
+      securityLevel: settings.securityLevel,
+      openMarkdownFile: onOpenFile,
+    });
 
-      initMermaid(mermaidTheme);
-      void renderMermaidBlocks(el, { isLatest }).then(() => {
-        if (isLatest()) attachMermaidClicks(el, setFsSvg);
-      });
-    }
+    initMermaid(mermaidTheme);
+    void renderMermaidBlocks(el, { isLatest }).then(() => {
+      if (isLatest()) attachMermaidClicks(el, setFsSvg);
+    });
+  }, [mdHtml, currentAbsPath, rootAbs, settings.securityLevel, onOpenFile, mermaidTheme]);
 
-    if (pendingHash) {
-      scrollToHash(el, pendingHash);
-      onHashConsumed();
-    }
-  }, [mdHtml, file, config, rootAbs, currentAbsPath, settings.securityLevel, onOpenFile, mermaidTheme, pendingHash, onHashConsumed]);
+  // 锚点滚动与消费：与正文渲染解耦，避免影响 Mermaid 重绘时机。
+  useEffect(() => {
+    if (!pendingHash) return;
+    const el = containerRef.current;
+    if (el) scrollToHash(el, pendingHash);
+    onHashConsumed();
+  }, [pendingHash, mdHtml, onHashConsumed]);
 
   if (!file)
     return <div className="preview__body empty">请选择一个文件开始预览</div>;

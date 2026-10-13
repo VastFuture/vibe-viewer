@@ -6,13 +6,15 @@ import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import { buildTree, readMarkdownFile, isMarkdownPath, DEFAULT_EXTENSIONS, normalizeExtensions } from "./api.js";
 import { createWatcher } from "./watcher.js";
+import { D2RenderError, renderD2, stopD2Renders, validateD2Source } from "./d2.js";
 
 interface ServerOpts {
   rootAbs: string;
   extensions?: string[];
+  d2Renderer?: (code: string) => Promise<string>;
 }
 
-export async function startServer({ rootAbs, extensions }: ServerOpts) {
+export async function startServer({ rootAbs, extensions, d2Renderer = renderD2 }: ServerOpts) {
   const rootNorm = path.resolve(rootAbs);
   let exts = extensions?.length ? normalizeExtensions(extensions) : [...DEFAULT_EXTENSIONS];
 
@@ -20,7 +22,7 @@ export async function startServer({ rootAbs, extensions }: ServerOpts) {
   const publicDir = path.join(distDir, "public");
 
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: "150kb" }));
   const server = http.createServer(app);
 
   const sockets = new Set<import("node:net").Socket>();
@@ -99,6 +101,22 @@ export async function startServer({ rootAbs, extensions }: ServerOpts) {
     }
   });
 
+  app.post("/api/render/d2", async (req, res) => {
+    try {
+      const code = validateD2Source(req.body?.code);
+      const svg = await d2Renderer(code);
+      res.json({ svg });
+    } catch (err) {
+      const statusCode = err instanceof D2RenderError
+        ? err.statusCode
+        : typeof (err as { statusCode?: unknown })?.statusCode === "number"
+          ? (err as { statusCode: number }).statusCode
+          : 500;
+      const message = err instanceof Error ? err.message : String(err);
+      res.status(statusCode).json({ error: message });
+    }
+  });
+
   app.get("/raw", async (req, res) => {
     const p = String(req.query.path ?? "");
     if (!p) return res.status(400).send("缺少 path 参数");
@@ -114,6 +132,15 @@ export async function startServer({ rootAbs, extensions }: ServerOpts) {
 
     res.setHeader("Cache-Control", "no-cache");
     res.sendFile(absPath);
+  });
+
+  app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const status = Number((err as { status?: unknown })?.status);
+    if (status === 413) {
+      res.status(413).json({ error: "请求体过大" });
+      return;
+    }
+    next(err);
   });
 
   app.use(express.static(publicDir));
@@ -132,6 +159,7 @@ export async function startServer({ rootAbs, extensions }: ServerOpts) {
   return {
     port,
     async close() {
+      stopD2Renders();
       await watcher.close();
       try { wss.close(); } catch {}
       for (const ws of clients) {

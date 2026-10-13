@@ -8,6 +8,7 @@ A zero-config local Markdown browser — one command, instant preview.
 - **File tree + live preview**: sidebar navigation, render-as-you-read
 - **Full rendering pipeline**: markdown-it → HTML → DOM post-process (asset rewriting + Mermaid.js)
 - **Mermaid.js 11.x**: fenced `mermaid` blocks rendered to SVG with fullscreen infinite-canvas viewer
+- **D2 diagrams**: fenced `d2` blocks rendered through the local D2 CLI and opened in the same fullscreen viewer
 - **8 built-in themes**: GitHub Light (default), GitHub Dark, Nord, Dracula, Catppuccin, Solarized, One Dark, Monokai
 - **Collapsible sidebar**: toggle open/close with smooth animation
 - **Auto refresh**: WebSocket + chokidar watches your files — save, add, or delete, the browser updates instantly
@@ -18,6 +19,8 @@ A zero-config local Markdown browser — one command, instant preview.
 ## Quick Start
 
 Requirements: Node.js `>= 18.18`.
+
+Optional: rendering fenced `d2` blocks requires the [D2 CLI](https://d2lang.com/tour/install/) to be available on `PATH`. D2 imports and `@` syntax are intentionally not supported.
 
 Interactive mode (choose a directory):
 
@@ -94,6 +97,7 @@ npm test
 
 - Render regression: `npm run test:render`
 - Server regression: `npm run test:server`
+- Browser E2E with system Chrome and the real D2 CLI: `npm run test:browser`
 
 ## Security Note
 

@@ -48,6 +48,11 @@ export function renderMarkdown(
       return `<div class="mermaid">\n${token.content}\n</div>\n`;
     }
 
+    // D2: wrap in <div class="d2-diagram"> with escaped content for safe DOM insertion
+    if (lang === "d2") {
+      return `<div class="d2-diagram">${md.utils.escapeHtml(token.content)}</div>\n`;
+    }
+
     // Other languages: use shiki highlighter if available
     if (highlighter) {
       try {

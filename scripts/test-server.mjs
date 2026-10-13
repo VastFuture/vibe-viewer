@@ -10,7 +10,13 @@ const rootAbs = path.resolve(__dirname, "..");
 
 console.log("--- Running vibeview integration self-tests ---");
 
-const { port, close } = await startServer({ rootAbs });
+const d2Renderer = async (code) => {
+  if (code === "missing") throw Object.assign(new Error("D2 CLI 未安装"), { statusCode: 503 });
+  if (code === "bad") throw Object.assign(new Error("syntax error"), { statusCode: 422 });
+  return `<svg data-source="${code}"></svg>`;
+};
+
+const { port, close } = await startServer({ rootAbs, d2Renderer });
 const baseUrl = `http://127.0.0.1:${port}`;
 
 try {
@@ -96,6 +102,52 @@ try {
   assert.ok(updatedConfig.extensions.includes(".customext"));
   assert.ok(!updatedConfig.extensions.includes(".html"), "HTML should be excluded after narrowing down extensions");
   console.log("✓ Test 7 passed: /api/config POST dynamically updated extensions");
+
+  // Test 8: D2 rendering endpoint
+  const d2Res = await fetch(`${baseUrl}/api/render/d2`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: "x -> y" }),
+  });
+  assert.equal(d2Res.status, 200);
+  const d2Body = await d2Res.json();
+  assert.ok(d2Body.svg.includes("<svg"));
+
+  const importRes = await fetch(`${baseUrl}/api/render/d2`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: "x: @import" }),
+  });
+  assert.equal(importRes.status, 400, "D2 imports must be rejected");
+
+  const spreadImportRes = await fetch(`${baseUrl}/api/render/d2`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: "x: { ...@shared }" }),
+  });
+  assert.equal(spreadImportRes.status, 400, "D2 spread imports must be rejected");
+
+  const compactImportRes = await fetch(`${baseUrl}/api/render/d2`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: "x;@secret" }),
+  });
+  assert.equal(compactImportRes.status, 400, "D2 compact imports must be rejected");
+
+  const oversizedRes = await fetch(`${baseUrl}/api/render/d2`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: "x".repeat(101 * 1024) }),
+  });
+  assert.equal(oversizedRes.status, 413, "D2 source over 100 KB must be rejected");
+
+  const missingRes = await fetch(`${baseUrl}/api/render/d2`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: "missing" }),
+  });
+  assert.equal(missingRes.status, 503);
+  console.log("✓ Test 8 passed: /api/render/d2 validates input and maps renderer errors");
 
   console.log("\n🎉 ALL SELF-TESTS PASSED SUCCESSFULLY!");
 } finally {

@@ -5,6 +5,7 @@ import { renderMarkdown } from "../markdown.js";
 import { sanitizeIfNeeded } from "../security.js";
 import { rewriteLocalAssets } from "../assets.js";
 import { initMermaid, renderMermaidBlocks } from "../mermaid.js";
+import { renderD2Blocks } from "../d2.js";
 import { getHighlighter } from "../highlight.js";
 import { THEMES } from "../themes.js";
 
@@ -36,7 +37,7 @@ function scrollToHash(container: HTMLElement, hash: string) {
   target.scrollIntoView({ block: "start" });
 }
 
-function attachMermaidClicks(container: HTMLElement, onOpen: (svgHtml: string) => void) {
+function attachDiagramClicks(container: HTMLElement, onOpen: (svgHtml: string) => void) {
   const diagrams = container.querySelectorAll(".bm-diagram");
   for (const el of diagrams) {
     const htmlEl = el as HTMLElement;
@@ -296,9 +297,12 @@ export function Preview({
     });
 
     initMermaid(mermaidTheme);
-    void renderMermaidBlocks(el, { isLatest }).then(() => {
-      if (isLatest()) attachMermaidClicks(el, setFsSvg);
-    });
+    void (async () => {
+      await renderMermaidBlocks(el, { isLatest });
+      if (!isLatest()) return;
+      await renderD2Blocks(el, { isLatest });
+      if (isLatest()) attachDiagramClicks(el, setFsSvg);
+    })();
   }, [mdHtml, currentAbsPath, rootAbs, settings.securityLevel, onOpenFile, mermaidTheme]);
 
   // 锚点滚动与消费：与正文渲染解耦，避免影响 Mermaid 重绘时机。
@@ -349,7 +353,7 @@ export function Preview({
       {fsSvg ? (
         <ImageViewer
           src={svgToImgUrl(fsSvg)}
-          alt="Mermaid 全屏预览"
+          alt="图表全屏预览"
           fullscreen={true}
           onClose={() => setFsSvg(null)}
           isLight={isLight}

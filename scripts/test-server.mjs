@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import path from "node:path";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs/promises";
 import { startServer } from "../dist/server.js";
@@ -148,6 +149,65 @@ try {
   });
   assert.equal(missingRes.status, 503);
   console.log("✓ Test 8 passed: /api/render/d2 validates input and maps renderer errors");
+
+  // Test 9: excess D2 renders wait instead of failing with 429
+  const fakeBinDir = await fs.mkdtemp(path.join(os.tmpdir(), "vibeview-d2-bin-"));
+  const fakeD2Path = path.join(fakeBinDir, "d2");
+  const startLogPath = path.join(fakeBinDir, "started.log");
+  const releasePath = path.join(fakeBinDir, "release");
+  const originalPath = process.env.PATH;
+  let queuedServer;
+  try {
+    await fs.writeFile(fakeD2Path, `#!/usr/bin/env node
+const fs = require("node:fs");
+let code = "";
+process.stdin.on("data", chunk => code += chunk);
+process.stdin.on("end", () => {
+  fs.appendFileSync(process.env.FAKE_D2_START_LOG, code + "\\n");
+  const timer = setInterval(() => {
+    if (!fs.existsSync(process.env.FAKE_D2_RELEASE)) return;
+    clearInterval(timer);
+    process.stdout.write("<svg></svg>");
+  }, 10);
+});
+`, { mode: 0o755 });
+    process.env.PATH = `${fakeBinDir}${path.delimiter}${originalPath ?? ""}`;
+    process.env.FAKE_D2_START_LOG = startLogPath;
+    process.env.FAKE_D2_RELEASE = releasePath;
+    queuedServer = await startServer({ rootAbs });
+    const queuedBaseUrl = `http://127.0.0.1:${queuedServer.port}`;
+    const responsePromise = Promise.all(Array.from({ length: 6 }, (_, index) =>
+      fetch(`${queuedBaseUrl}/api/render/d2`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: `x${index} -> y${index}` }),
+      })
+    ));
+
+    const deadline = Date.now() + 5_000;
+    let started = [];
+    while (Date.now() < deadline) {
+      const log = await fs.readFile(startLogPath, "utf8").catch(() => "");
+      started = log.trim().split("\n").filter(Boolean);
+      if (started.length === 4) break;
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    assert.equal(started.length, 4, "only four D2 processes may run concurrently");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const stillStarted = (await fs.readFile(startLogPath, "utf8")).trim().split("\n").filter(Boolean);
+    assert.equal(stillStarted.length, 4, "excess D2 renders must remain queued");
+
+    await fs.writeFile(releasePath, "");
+    const responses = await responsePromise;
+    assert.deepEqual(responses.map((response) => response.status), Array(6).fill(200));
+    console.log("✓ Test 9 passed: excess D2 renders wait for an available process slot");
+  } finally {
+    await queuedServer?.close();
+    process.env.PATH = originalPath;
+    delete process.env.FAKE_D2_START_LOG;
+    delete process.env.FAKE_D2_RELEASE;
+    await fs.rm(fakeBinDir, { recursive: true, force: true });
+  }
 
   console.log("\n🎉 ALL SELF-TESTS PASSED SUCCESSFULLY!");
 } finally {

@@ -5,7 +5,13 @@ const MAX_D2_OUTPUT_BYTES = 5 * 1024 * 1024;
 const MAX_D2_ERROR_BYTES = 64 * 1024;
 const D2_TIMEOUT_MS = 10_000;
 const MAX_D2_PROCESSES = 4;
+const MAX_PENDING_D2_RENDERS = 100;
 const activeProcesses = new Set<ReturnType<typeof spawn>>();
+const pendingRenders: Array<{
+  code: string;
+  resolve: (svg: string) => void;
+  reject: (error: D2RenderError) => void;
+}> = [];
 
 export class D2RenderError extends Error {
   constructor(message: string, readonly statusCode: number) {
@@ -29,8 +35,23 @@ export function validateD2Source(code: unknown): string {
 
 export function renderD2(code: string): Promise<string> {
   if (activeProcesses.size >= MAX_D2_PROCESSES) {
-    return Promise.reject(new D2RenderError("D2 渲染任务过多，请稍后重试", 429));
+    if (pendingRenders.length >= MAX_PENDING_D2_RENDERS) {
+      return Promise.reject(new D2RenderError("D2 渲染等待队列已满，请稍后重试", 429));
+    }
+    return new Promise((resolve, reject) => {
+      pendingRenders.push({ code, resolve, reject });
+    });
   }
+  return startD2Render(code);
+}
+
+function startNextD2Render() {
+  const next = pendingRenders.shift();
+  if (!next) return;
+  startD2Render(next.code).then(next.resolve, next.reject);
+}
+
+function startD2Render(code: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn("d2", ["--no-xml-tag", "--target=", "-", "-"], {
       stdio: ["pipe", "pipe", "pipe"],
@@ -49,6 +70,7 @@ export function renderD2(code: string): Promise<string> {
       clearTimeout(timer);
       activeProcesses.delete(child);
       fn();
+      startNextD2Render();
     };
     const fail = (error: D2RenderError) => finish(() => reject(error));
     const timer = setTimeout(() => {
@@ -101,6 +123,8 @@ export function renderD2(code: string): Promise<string> {
 }
 
 export function stopD2Renders() {
+  const error = new D2RenderError("D2 渲染服务已停止", 503);
+  for (const pending of pendingRenders.splice(0)) pending.reject(error);
   for (const child of activeProcesses) child.kill("SIGKILL");
   activeProcesses.clear();
 }
